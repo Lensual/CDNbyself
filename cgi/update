@@ -1,0 +1,73 @@
+#!/bin/bash
+echo "Content-type: text/plain"
+echo
+
+#Split arguments
+OLD_IFS="$IFS"
+IFS=";"
+arr=($QUERY_STRING)
+IFS=$OLD_IFS
+for s in ${arr[@]}
+do
+  key=${s%%=*}
+  val=${s#*=}
+  case $key in
+    domain)
+      domain=$val
+      ;;
+    addr)
+      addr=$val
+      ;;
+    speedlimit)
+      speedlimit="--bwlimit=${val}"
+      ;;
+    srcpath)
+      srcpath=$val
+      ;;
+    *)
+      echo "warning: unknown parameter \"$val\""
+      ;;
+  esac
+done
+
+#Check arugments
+if [ -z $domain ]; then
+  echo "error: domain not found"
+  exit 1
+else
+  sshKeyPath="$DOCUMENT_ROOT/../sshkey"
+  sshKey=$sshKeyPath/${domain}_rsync.pem
+  if [! -f $sshKey ]; then
+    echo "error: SSH Key note found"
+    exit 1
+  fi
+  if [ -z $addr ]; then
+    addr=$domain
+  fi
+fi
+
+#Check pid
+pidfile=$sshKeyPath/${domain}_bash.pid
+if [ -f $pidfile ]; then
+  pid=$(cat "${pidfile}")
+  ps -q ${pid} > /dev/null
+  if [ $? -eq 0 ]; then
+    echo "error: update is already running $(ps -o etime --no-headers -q ${pid})"
+    exit 1
+  fi
+fi
+echo $$ > $pidfile
+
+#Run rsync
+rsync --safe-links --partial --compress-level=9 -rtDSzvuc $speedlimit --delete -T /tmp -z \
+	-e "ssh -o UserKnownHostsFile=${sshKeyPath}/known_hosts -o StrictHostKeyChecking=no -i ${sshKey}" \
+	root@$addr:$srcpath/ $DOCUMENT_ROOT/$domain/
+
+rsyncRet=$?
+echo
+
+if [ $rsyncRet -eq 0 ]; then
+  echo "Successful"
+else
+  echo "error: rsync return code $rsyncRet"
+fi
