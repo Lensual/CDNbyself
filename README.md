@@ -14,8 +14,10 @@ api 目前只放了同步请求接口
 
  - `domain` 用于 CDN 辨别站点的域名
  - `addr` 源站 ip 地址或域名，用于连接源站
+ - `port` 源站ssh端口，默认22
  - `srcpath` 源站中 rsync 同步的路径
  - `speedlimit` 传输限速 KByte/s
+ - `cmd` 仅输出生成的命令，用于排错
 
 Example:
 ```
