@@ -2,6 +2,7 @@
 header("Content-type: text/plain");
 $domain = $_REQUEST['domain'];
 $addr = $_REQUEST['addr'];
+$port = $_REQUEST['port'];
 if (isset($_REQUEST['speedlimit'])) {
     $speedlimit = '--bwlimit=' . $_REQUEST['speedlimit'];
 }
